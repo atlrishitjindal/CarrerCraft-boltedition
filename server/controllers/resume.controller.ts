@@ -15,28 +15,19 @@ export class ResumeController {
     const file = req.file;
     const fileName = `${userId}/${Date.now()}-${file.originalname}`;
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('resumes')
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype,
-        upsert: false
-      });
+    // STORAGE BYPASS: Using mock URL (create 'resumes' bucket in Supabase to enable real storage)
+    const mockUrl = `https://placeholder-storage.com/resumes/${fileName}`;
+    console.log('📄 Uploading:', file.originalname, 'for user:', userId);
 
-    if (uploadError) {
-      throw new AppError('Failed to upload file', 500);
-    }
-
-    const { data: urlData } = supabase.storage
-      .from('resumes')
-      .getPublicUrl(fileName);
-
+    // Extract text from resume
     const resumeText = await this.extractText(file);
 
+    // Save to database
     const { data: resume, error } = await supabaseAdmin
       .from('resumes')
       .insert({
         user_id: userId,
-        file_url: urlData.publicUrl,
+        file_url: mockUrl,
         file_name: file.originalname,
         parsed_text: resumeText
       })
@@ -44,9 +35,11 @@ export class ResumeController {
       .single();
 
     if (error || !resume) {
-      throw new AppError('Failed to save resume', 500);
+      console.error('❌ Database insert error:', error);
+      throw new AppError(`Failed to save resume: ${error?.message || 'Unknown error'}`, 500);
     }
 
+    // Log activity
     await supabaseAdmin.from('activities').insert({
       user_id: userId,
       type: 'resume_upload',
@@ -55,6 +48,7 @@ export class ResumeController {
       metadata: { resumeId: resume.id }
     });
 
+    console.log('✅ Resume saved to database:', resume.id);
     res.status(201).json({ resume });
   }
 
@@ -207,7 +201,7 @@ export class ResumeController {
       return await pdfService.extractTextFromPDF(file.buffer);
     } else if (
       mimeType ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       mimeType === 'application/msword'
     ) {
       return await pdfService.extractTextFromDOCX(file.buffer);

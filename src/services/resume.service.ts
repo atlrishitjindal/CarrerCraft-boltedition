@@ -25,7 +25,7 @@ export const resumeService = {
         const formData = new FormData();
         formData.append('resume', file);
 
-        const response = await api.post<{ resume: Resume }>('/resume/upload', formData, {
+        const response = await api.post<{ resume: Resume }>('/resumes/upload', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -34,27 +34,27 @@ export const resumeService = {
     },
 
     getResumes: async () => {
-        const response = await api.get<{ resumes: Resume[] }>('/resume');
+        const response = await api.get<{ resumes: Resume[] }>('/resumes');
         return response.data;
     },
 
     analyzeResume: async (resumeId: string) => {
-        const response = await api.post<{ analysis: AnalysisResult }>(`/resume/${resumeId}/analyze`);
+        const response = await api.post<{ analysis: AnalysisResult }>(`/resumes/${resumeId}/analyze`);
         return response.data;
     },
 
     deleteResume: async (resumeId: string) => {
-        const response = await api.delete(`/resume/${resumeId}`);
+        const response = await api.delete(`/resumes/${resumeId}`);
         return response.data;
     },
 
     improveResume: async (resumeId: string) => {
-        const response = await api.post<{ improvedText: string }>(`/resume/${resumeId}/improve`);
+        const response = await api.post<{ improvedText: string }>(`/resumes/${resumeId}/improve`);
         return response.data;
     },
 
     getSkillsGap: async (resumeId: string, targetRole: string) => {
-        const response = await api.post<{ skillSuggestions: any[] }>(`/resume/${resumeId}/skills-gap`, { targetRole });
+        const response = await api.post<{ skillSuggestions: any[] }>(`/resumes/${resumeId}/skills-gap`, { targetRole });
         return response.data;
     },
 };

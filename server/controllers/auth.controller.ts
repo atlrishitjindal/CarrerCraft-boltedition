@@ -180,6 +180,61 @@ export class AuthController {
       subscription
     });
   }
+
+  async updateProfile(req: Request, res: Response) {
+    const userId = (req as any).user.id;
+    const { fullName } = req.body;
+
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .update({ full_name: fullName })
+      .eq('id', userId)
+      .select('id, email, full_name, role')
+      .single();
+
+    if (error || !user) {
+      throw new AppError('Failed to update profile', 500);
+    }
+
+    res.json({ user });
+  }
+
+  async updatePassword(req: Request, res: Response) {
+    const userId = (req as any).user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    // 1. Get current password hash
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select('password_hash')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // 2. Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isValidPassword) {
+      throw new AppError('Invalid current password', 401);
+    }
+
+    // 3. Hash new password
+    const newPasswordHash = await bcrypt.hash(newPassword, 12);
+
+    // 4. Update password
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({ password_hash: newPasswordHash })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw new AppError('Failed to update password', 500);
+    }
+
+    res.json({ message: 'Password updated successfully' });
+  }
 }
 
 export const authController = new AuthController();

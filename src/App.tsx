@@ -10,6 +10,8 @@ import { DashboardOverview } from './pages/Dashboard/DashboardOverview';
 import { ResumePage } from './pages/Dashboard/ResumePage';
 import { JobsPage } from './pages/Dashboard/JobsPage';
 import { ApplicationsPage } from './pages/Dashboard/ApplicationsPage';
+import { SettingsPage } from './pages/Dashboard/SettingsPage';
+import { EmailsPage } from './pages/Dashboard/EmailsPage';
 import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient();
@@ -35,8 +37,8 @@ function App() {
                       <Route path="resumes" element={<ResumePage />} />
                       <Route path="jobs" element={<JobsPage />} />
                       <Route path="applications" element={<ApplicationsPage />} />
-                      <Route path="emails" element={<div>Emails Page Coming Soon</div>} />
-                      <Route path="settings" element={<div>Settings Page Coming Soon</div>} />
+                      <Route path="emails" element={<EmailsPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
                     </Routes>
                   </DashboardLayout>
                 </ProtectedRoute>

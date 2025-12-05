@@ -11,5 +11,7 @@ router.post('/signup', validate(signupSchema), asyncHandler(authController.signu
 router.post('/login', validate(loginSchema), asyncHandler(authController.login.bind(authController)));
 router.post('/refresh', asyncHandler(authController.refresh.bind(authController)));
 router.get('/profile', authenticate, asyncHandler(authController.getProfile.bind(authController)));
+router.put('/profile', authenticate, asyncHandler(authController.updateProfile.bind(authController)));
+router.put('/password', authenticate, asyncHandler(authController.updatePassword.bind(authController)));
 
 export default router;

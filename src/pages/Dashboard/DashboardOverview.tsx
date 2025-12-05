@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import {
   FileText,
@@ -14,77 +13,76 @@ import {
   Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-
-const activityData = [
-  { month: 'Jan', applications: 4 },
-  { month: 'Feb', applications: 8 },
-  { month: 'Mar', applications: 12 },
-  { month: 'Apr', applications: 15 },
-  { month: 'May', applications: 10 },
-  { month: 'Jun', applications: 18 }
-];
-
-const stats = [
-  {
-    name: 'Resume Score',
-    value: '85',
-    suffix: '/100',
-    icon: FileText,
-    color: 'text-blue-600',
-    bg: 'bg-blue-100'
-  },
-  {
-    name: 'Job Matches',
-    value: '24',
-    suffix: '',
-    icon: Briefcase,
-    color: 'text-green-600',
-    bg: 'bg-green-100'
-  },
-  {
-    name: 'Applications',
-    value: '12',
-    suffix: '',
-    icon: Target,
-    color: 'text-purple-600',
-    bg: 'bg-purple-100'
-  },
-  {
-    name: 'Response Rate',
-    value: '38',
-    suffix: '%',
-    icon: TrendingUp,
-    color: 'text-orange-600',
-    bg: 'bg-orange-100'
-  }
-];
-
-const recentActivity = [
-  {
-    type: 'application',
-    title: 'Applied to Senior Software Engineer',
-    company: 'Tech Corp',
-    time: '2 hours ago',
-    status: 'pending'
-  },
-  {
-    type: 'match',
-    title: 'New job match: Frontend Developer',
-    company: 'StartupXYZ',
-    time: '5 hours ago',
-    status: 'new'
-  },
-  {
-    type: 'interview',
-    title: 'Interview scheduled',
-    company: 'Innovation Labs',
-    time: '1 day ago',
-    status: 'scheduled'
-  }
-];
+import { useQuery } from '@tanstack/react-query';
+import { resumeService } from '@/services/resume.service';
+import { jobService } from '@/services/job.service';
 
 export function DashboardOverview() {
+  const { data: resumes, isLoading: isLoadingResumes } = useQuery({
+    queryKey: ['resumes'],
+    queryFn: resumeService.getResumes
+  });
+
+  const { data: matches, isLoading: isLoadingMatches } = useQuery({
+    queryKey: ['matches'],
+    queryFn: jobService.getMatches
+  });
+
+  const latestResume = resumes?.resumes?.[0];
+  const atsScore = latestResume?.ats_score || 0;
+  const matchCount = matches?.matches?.length || 0;
+
+  const applications = matches?.matches?.filter(m => m.status === 'applied' || m.status === 'interviewing' || m.status === 'hired' || m.status === 'rejected') || [];
+  const applicationCount = applications.length;
+
+  const responseCount = matches?.matches?.filter(m => m.status === 'interviewing' || m.status === 'hired').length || 0;
+  const responseRate = applicationCount > 0 ? Math.round((responseCount / applicationCount) * 100) : 0;
+
+  const stats = [
+    {
+      name: 'Resume Score',
+      value: atsScore.toString(),
+      suffix: '/100',
+      icon: FileText,
+      color: 'text-blue-600',
+      bg: 'bg-blue-100'
+    },
+    {
+      name: 'Job Matches',
+      value: matchCount.toString(),
+      suffix: '',
+      icon: Briefcase,
+      color: 'text-green-600',
+      bg: 'bg-green-100'
+    },
+    {
+      name: 'Applications',
+      value: applicationCount.toString(),
+      suffix: '',
+      icon: Target,
+      color: 'text-purple-600',
+      bg: 'bg-purple-100'
+    },
+    {
+      name: 'Response Rate',
+      value: responseRate.toString(),
+      suffix: '%',
+      icon: TrendingUp,
+      color: 'text-orange-600',
+      bg: 'bg-orange-100'
+    }
+  ];
+
+  const recentActivity = [
+    ...(matches?.matches || []).slice(0, 3).map(m => ({
+      type: 'match',
+      title: m.job.title,
+      company: m.job.company,
+      time: new Date(m.created_at).toLocaleDateString(),
+      status: m.status
+    }))
+  ];
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -133,16 +131,8 @@ export function DashboardOverview() {
           <CardHeader>
             <CardTitle>Application Activity</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={activityData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="applications" fill="#2563eb" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="flex items-center justify-center h-[300px]">
+            <p className="text-gray-500">Activity tracking coming soon</p>
           </CardContent>
         </Card>
 
@@ -203,32 +193,36 @@ export function DashboardOverview() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  {activity.status === 'pending' ? (
-                    <Clock className="h-5 w-5 text-blue-600" />
-                  ) : (
-                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">{activity.title}</p>
-                  <p className="text-sm text-gray-500">
-                    {activity.company} • {activity.time}
-                  </p>
-                </div>
-                <Badge variant={activity.status === 'new' ? 'default' : 'secondary'}>
-                  {activity.status}
-                </Badge>
-              </motion.div>
-            ))}
+            {recentActivity.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No recent activity</p>
+            ) : (
+              recentActivity.map((activity, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    {activity.status === 'pending' ? (
+                      <Clock className="h-5 w-5 text-blue-600" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{activity.title}</p>
+                    <p className="text-sm text-gray-500">
+                      {activity.company} • {activity.time}
+                    </p>
+                  </div>
+                  <Badge variant={activity.status === 'new' ? 'default' : 'secondary'}>
+                    {activity.status}
+                  </Badge>
+                </motion.div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
