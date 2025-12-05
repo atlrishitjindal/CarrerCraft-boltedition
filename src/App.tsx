@@ -7,6 +7,9 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { DashboardOverview } from './pages/Dashboard/DashboardOverview';
+import { ResumePage } from './pages/Dashboard/ResumePage';
+import { JobsPage } from './pages/Dashboard/JobsPage';
+import { ApplicationsPage } from './pages/Dashboard/ApplicationsPage';
 import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient();
@@ -29,9 +32,9 @@ function App() {
                   <DashboardLayout>
                     <Routes>
                       <Route index element={<DashboardOverview />} />
-                      <Route path="resumes" element={<div>Resumes Page Coming Soon</div>} />
-                      <Route path="jobs" element={<div>Jobs Page Coming Soon</div>} />
-                      <Route path="applications" element={<div>Applications Page Coming Soon</div>} />
+                      <Route path="resumes" element={<ResumePage />} />
+                      <Route path="jobs" element={<JobsPage />} />
+                      <Route path="applications" element={<ApplicationsPage />} />
                       <Route path="emails" element={<div>Emails Page Coming Soon</div>} />
                       <Route path="settings" element={<div>Settings Page Coming Soon</div>} />
                     </Routes>
