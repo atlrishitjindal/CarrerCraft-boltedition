@@ -83,6 +83,54 @@ export class ResumeController {
     }
   }
 
+  async uploadResumeText(req: AuthRequest, res: Response) {
+    try {
+      const { text, fileName, jobDescription } = req.body;
+      const userId = req.user!.id;
+
+      if (!text) {
+        throw new AppError('Resume text is required', 400);
+      }
+
+      const name = fileName || `Imported-${Date.now()}.txt`;
+      // Mock URL for text uploads
+      const mockUrl = `https://placeholder-storage.com/resumes/${userId}/${name}`;
+
+      const resumeData = {
+        user_id: userId,
+        file_url: mockUrl,
+        file_name: name,
+        parsed_text: text,
+        // We could store job description if we had a column, but for now we'll just use it for immediate analysis or ignore it until analysis step
+      };
+
+      const { data: resume, error } = await supabaseAdmin
+        .from('resumes')
+        .insert(resumeData)
+        .select()
+        .single();
+
+      if (error) {
+        throw new AppError(`Database error: ${error.message}`, 500);
+      }
+
+      // Log activity
+      await supabaseAdmin.from('activities').insert({
+        user_id: userId,
+        type: 'resume_upload',
+        title: 'Resume text imported',
+        description: `Imported ${name}`,
+        metadata: { resumeId: resume.id }
+      });
+
+      res.status(201).json({ resume });
+    } catch (error: any) {
+      console.error('🔥 Exception in uploadResumeText:', error);
+      if (error instanceof AppError) throw error;
+      throw new AppError(`Upload failed: ${error.message}`, 500);
+    }
+  }
+
   async analyzeResume(req: AuthRequest, res: Response) {
     const { resumeId } = req.params;
     const userId = req.user!.id;

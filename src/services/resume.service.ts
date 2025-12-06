@@ -33,6 +33,15 @@ export const resumeService = {
         return response.data;
     },
 
+    uploadResumeText: async (text: string, fileName?: string, jobDescription?: string) => {
+        const response = await api.post<{ resume: Resume }>('/resumes/upload-text', {
+            text,
+            fileName,
+            jobDescription
+        });
+        return response.data;
+    },
+
     getResumes: async () => {
         const response = await api.get<{ resumes: Resume[] }>('/resumes');
         return response.data;
