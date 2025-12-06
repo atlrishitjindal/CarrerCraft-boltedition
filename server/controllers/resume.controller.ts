@@ -13,6 +13,12 @@ export class ResumeController {
 
     const userId = req.user!.id;
     const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const buffer = file.buffer;
+    const originalName = file.originalname;
     const fileName = `${userId}/${Date.now()}-${file.originalname}`;
 
     // STORAGE BYPASS: Using mock URL (create 'resumes' bucket in Supabase to enable real storage)
@@ -21,8 +27,9 @@ export class ResumeController {
 
     // Extract text from resume
     const resumeText = await this.extractText(file);
+    console.log('📝 Extracted text length:', resumeText.length, 'characters');
 
-    // Save to database
+    // Save to database WITH parsed_text
     const { data: resume, error } = await supabaseAdmin
       .from('resumes')
       .insert({
@@ -68,10 +75,13 @@ export class ResumeController {
     }
 
     if (!resume.parsed_text) {
-      throw new AppError('Resume has no text content', 400);
+      throw new AppError('Resume has no parsed text. Please re-upload the resume.', 400);
     }
 
+    // Use AI service for real analysis
+    console.log('🤖 Starting AI analysis for resume:', resumeId);
     const analysis = await aiService.analyzeResume(resume.parsed_text);
+    console.log('✅ AI analysis complete. ATS Score:', analysis.atsScore);
 
     const { error: updateError } = await supabaseAdmin
       .from('resumes')

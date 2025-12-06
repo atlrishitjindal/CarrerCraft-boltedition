@@ -1,8 +1,10 @@
+import pdf from 'pdf-parse';
+
 export class PDFService {
   async extractTextFromPDF(buffer: Buffer): Promise<string> {
     try {
-      const text = buffer.toString('utf-8');
-      return this.cleanText(text);
+      const data = await pdf(buffer);
+      return this.cleanText(data.text);
     } catch (error) {
       console.error('PDF extraction error:', error);
       return '';
@@ -11,6 +13,8 @@ export class PDFService {
 
   async extractTextFromDOCX(buffer: Buffer): Promise<string> {
     try {
+      // For now, fallback to basic text extraction
+      // TODO: Improve with 'mammoth' library for better DOCX parsing
       const text = buffer.toString('utf-8');
       return this.cleanText(text);
     } catch (error) {

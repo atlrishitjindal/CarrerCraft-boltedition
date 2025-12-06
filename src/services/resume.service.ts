@@ -23,7 +23,7 @@ export interface AnalysisResult {
 export const resumeService = {
     uploadResume: async (file: File) => {
         const formData = new FormData();
-        formData.append('resume', file);
+        formData.append('file', file);
 
         const response = await api.post<{ resume: Resume }>('/resumes/upload', formData, {
             headers: {
