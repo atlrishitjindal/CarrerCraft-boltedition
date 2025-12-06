@@ -7,56 +7,80 @@ import { AppError } from '../middleware/errorHandler';
 
 export class ResumeController {
   async uploadResume(req: AuthRequest, res: Response) {
-    if (!req.file) {
-      throw new AppError('No file uploaded', 400);
-    }
+    console.log('📂 uploadResume called');
+    try {
+      if (!req.file) {
+        console.error('❌ No file received in request');
+        throw new AppError('No file uploaded', 400);
+      }
 
-    const userId = req.user!.id;
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
+      const userId = req.user!.id;
+      const file = req.file;
+      console.log(`📄 Processing file: ${file.originalname} (${file.mimetype}) for user: ${userId}`);
 
-    const buffer = file.buffer;
-    const originalName = file.originalname;
-    const fileName = `${userId}/${Date.now()}-${file.originalname}`;
+      // Extract text from resume
+      let resumeText = '';
+      try {
+        resumeText = await this.extractText(file);
+        console.log('📝 Extracted text length:', resumeText.length);
+      } catch (extractError) {
+        console.error('❌ Text extraction failed:', extractError);
+        // Continue but warn? Or fail? Let's use empty string for now but log it.
+      }
 
-    // STORAGE BYPASS: Using mock URL (create 'resumes' bucket in Supabase to enable real storage)
-    const mockUrl = `https://placeholder-storage.com/resumes/${fileName}`;
-    console.log('📄 Uploading:', file.originalname, 'for user:', userId);
+      const fileName = `${userId}/${Date.now()}-${file.originalname}`;
+      // STORAGE BYPASS: Using mock URL
+      // TODO: Implement actual Supabase Storage upload
+      const mockUrl = `https://placeholder-storage.com/resumes/${fileName}`;
 
-    // Extract text from resume
-    const resumeText = await this.extractText(file);
-    console.log('📝 Extracted text length:', resumeText.length, 'characters');
-
-    // Save to database WITH parsed_text
-    const { data: resume, error } = await supabaseAdmin
-      .from('resumes')
-      .insert({
+      // Prepare DB insert payload
+      const resumeData = {
         user_id: userId,
         file_url: mockUrl,
         file_name: file.originalname,
-        parsed_text: resumeText
-      })
-      .select()
-      .single();
+        parsed_text: resumeText || ''
+      };
 
-    if (error || !resume) {
-      console.error('❌ Database insert error:', error);
-      throw new AppError(`Failed to save resume: ${error?.message || 'Unknown error'}`, 500);
+      console.log('💾 Inserting into DB:', resumeData);
+
+      // Save to database
+      const { data: resume, error } = await supabaseAdmin
+        .from('resumes')
+        .insert(resumeData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Database insert error details:', JSON.stringify(error, null, 2));
+        throw new AppError(`Database error: ${error.message}`, 500);
+      }
+
+      if (!resume) {
+        console.error('❌ No resume returned after insert');
+        throw new AppError('Failed to save resume', 500);
+      }
+
+      console.log('✅ Resume saved successfully:', resume.id);
+
+      // Log activity (fire and forget)
+      supabaseAdmin.from('activities').insert({
+        user_id: userId,
+        type: 'resume_upload',
+        title: 'Resume uploaded',
+        description: `Uploaded ${file.originalname}`,
+        metadata: { resumeId: resume.id }
+      }).then(({ error: actError }) => {
+        if (actError) console.warn('⚠️ Failed to log activity:', actError.message);
+      });
+
+      res.status(201).json({ resume });
+
+    } catch (error: any) {
+      console.error('🔥 Exception in uploadResume:', error);
+      // Pass to global error handler
+      if (error instanceof AppError) throw error;
+      throw new AppError(`Upload failed: ${error.message}`, 500);
     }
-
-    // Log activity
-    await supabaseAdmin.from('activities').insert({
-      user_id: userId,
-      type: 'resume_upload',
-      title: 'Resume uploaded',
-      description: `Uploaded ${file.originalname}`,
-      metadata: { resumeId: resume.id }
-    });
-
-    console.log('✅ Resume saved to database:', resume.id);
-    res.status(201).json({ resume });
   }
 
   async analyzeResume(req: AuthRequest, res: Response) {
