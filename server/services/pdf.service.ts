@@ -1,9 +1,10 @@
-import pdf from 'pdf-parse';
+import * as pdfLib from 'pdf-parse';
+const pdf = (pdfLib as any).default || pdfLib;
 
 export class PDFService {
   async extractTextFromPDF(buffer: Buffer): Promise<string> {
     try {
-      const data = await pdf(buffer);
+      const data = await (pdf as any)(buffer);
       return this.cleanText(data.text);
     } catch (error) {
       console.error('PDF extraction error:', error);
